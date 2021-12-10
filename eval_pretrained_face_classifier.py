@@ -2,12 +2,10 @@ import os
 import numpy as np
 import sys
 from tqdm import tqdm
-# from sklearn.metrics import auc as compute_auc
-from sklearn.metrics import roc_auc_score
 from copy import deepcopy
 
 # InsightFace model
-INSIGHTFACE_ROOT='/h/wangkuan/projects/InsightFace_Pytorch'
+INSIGHTFACE_ROOT='../InsightFace_Pytorch'
 sys.path.append(INSIGHTFACE_ROOT)
 from config import get_config
 # from Learner import face_learner
@@ -312,105 +310,6 @@ class FinetunednsightFaceClassifier(nn.Module):
         preds = torch.max(logits, 1)[1]
         acc = (preds.cpu() == y.cpu()).float().mean()
         return acc.item()
-
-# Main
-
-
-def main_reproduce_other_repo():
-    conf = get_config(training=False)
-    model = Backbone(conf.net_depth, conf.drop_ratio,
-                     conf.net_mode).to(conf.device)
-    model.load_state_dict(torch.load(os.path.join(
-        INSIGHTFACE_ROOT, conf.save_path/'model_{}'.format('ir_se50.pth'))))
-    model.eval()
-
-    vgg2_fp = bcolz.carray(
-        rootdir='/h/wangkuan/projects/InsightFace_Pytorch/data/faces_emore/vgg2_fp', mode='r')
-    vgg2_fp_issame = np.load(
-        '/h/wangkuan/projects/InsightFace_Pytorch/data/faces_emore/vgg2_fp_list.npy')
-    vutils.save_image(torch.tensor(vgg2_fp[:64])[:, [2, 1, 0]] / 2 + .5, f'vgg2_gp.jpeg', normalize=True, nrow=8, padding=2)
-    vutils.save_image(torch.tensor(vgg2_fp[-64:])[:, [2, 1, 0]] / 2 + .5, f'vgg2_gp_2.jpeg', normalize=True, nrow=8, padding=2)
-
-    tta = True
-    nrof_folds = 10
-    carray = vgg2_fp
-    issame = vgg2_fp_issame
-
-    embeddings = torch.from_numpy(
-        np.zeros([len(carray), conf.embedding_size])).to(conf.device)
-    with torch.no_grad():
-        for idx in tqdm(range(0, len(carray), conf.batch_size), desc='backbone fpass'):
-            batch = torch.tensor(carray[idx:idx + conf.batch_size])
-            if tta:
-                fliped = hflip_batch(batch)
-                emb_batch = model(batch.to(conf.device)) + \
-                    model(fliped.to(conf.device))
-                embeddings[idx:idx + conf.batch_size] = l2_norm(emb_batch)
-            else:
-                embeddings[idx:idx +
-                           conf.batch_size] = model(batch.to(conf.device)).cpu()
-            idx += conf.batch_size
-
-    embeddings = embeddings.cpu().numpy()
-    embeddings1 = embeddings[0::2]
-    embeddings2 = embeddings[1::2]
-    dists = embedding_dist(embeddings1, embeddings2)
-    auc = compute_auc(dists, issame)
-    auc = roc_auc_score(y_true=issame, y_score=-dists)
-
-
-# Main
-def main():
-    from celeba import get_celeba_dataset
-    conf = get_config(training=False)
-    model = Backbone(conf.net_depth, conf.drop_ratio,
-                     conf.net_mode).to(conf.device)
-    model.load_state_dict(torch.load(os.path.join(
-        INSIGHTFACE_ROOT, conf.save_path/'model_{}'.format('ir_se50.pth'))))
-    model.eval()
-
-    vgg2_fp = bcolz.carray(
-        rootdir='/h/wangkuan/projects/InsightFace_Pytorch/data/faces_emore/vgg2_fp', mode='r')
-    vgg2_fp_issame = np.load(
-        '/h/wangkuan/projects/InsightFace_Pytorch/data/faces_emore/vgg2_fp_list.npy')
-    vutils.save_image(torch.tensor(vgg2_fp[:64])[:, [2, 1, 0]] / 2 + .5, f'vgg2_gp.jpeg', normalize=True, nrow=8, padding=2)
-    vutils.save_image(torch.tensor(vgg2_fp[-64:])[:, [2, 1, 0]] / 2 + .5, f'vgg2_gp_2.jpeg', normalize=True, nrow=8, padding=2)
-
-    # Get Celeb-A data
-    train_x, train_y, test_x, test_y = get_celeba_dataset('target')
-    # Reverse RGB
-    train_x = train_x[:, [2, 1, 0]]
-    test_x = test_x[:, [2, 1, 0]]
-    vutils.save_image(torch.tensor(train_x[:64])[:, [2, 1, 0]] / 2 + .5, f'celeba.jpeg', normalize=True, nrow=8, padding=2)
-
-    def fpass(x, tta=True):
-        embeddings = torch.from_numpy(
-            np.zeros([len(x), conf.embedding_size])).to(conf.device)
-        with torch.no_grad():
-            for idx in tqdm(range(0, len(x), conf.batch_size), desc=f'backbone fpass '):
-                batch = torch.tensor(x[idx:idx + conf.batch_size])
-                batch = resize112_batch(batch)
-                if tta:
-                    fliped = hflip_batch(batch)
-                    emb_batch = model(batch.to(conf.device)) + \
-                        model(fliped.to(conf.device))
-                    embeddings[idx:idx + conf.batch_size] = l2_norm(emb_batch)
-                else:
-                    embeddings[idx:idx +
-                               conf.batch_size] = model(batch.to(conf.device)).cpu()
-        return embeddings
-    train_embeddings = fpass(train_x)
-    test_embeddings = fpass(test_x)
-
-    prototypes = torch.zeros(1000, train_embeddings.size(1))
-    for c in range(1000):
-        prototypes[c] = train_embeddings[train_y == c].mean(0)
-
-    dists = euclidean_dist(test_embeddings.float().cpu(),
-                           prototypes.float().cpu())
-    preds = torch.min(dists, 1)[1]
-    acc = (preds == test_y).float().mean()
-    print(acc.item())
 
 
 def main_use_class():

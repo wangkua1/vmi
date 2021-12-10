@@ -1,5 +1,5 @@
 exp_config=neurips2021-celeba.yml
-STYLEGAN_PKL=pretrained/stylegan/neurips2021-celeba/network-snapshot-002298.pkl
+STYLEGAN_PKL=pretrained/stylegan/neurips2021-celeba-stylegan/network-snapshot-002298.pkl
 exp_id=CelebA.1.data
 lr=1e-4 
 lambda_kl=1e-3
@@ -32,7 +32,6 @@ cmd="attack_stylegan.py \
 --method ${method} \
 --exp_config ${exp_config} \
 --prior_model 0 \
---lep_path ${lep_path} \
 --fixed_id ${fixed_id} \
 --save_model_epochs 10,20,30 \
 --resume $1 \

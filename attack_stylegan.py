@@ -20,7 +20,7 @@ import torchvision.utils as vutils
 import utils
 from utils import gaussian_logp
 from csv_logger import CSVLogger, plot_csv
-from main_aux import save_checkpoint, maybe_load_checkpoint
+from main import save_checkpoint, maybe_load_checkpoint
 from experimental import AttackExperiment
 from likelihood_model import ReparameterizedMVN, MixtureOfRMVN, MixtureOfIndependentRMVN, FlowMiner, LayeredFlowMiner, MixtureOfGMM
 
@@ -446,7 +446,6 @@ if __name__ == '__main__':
     parser.add_argument('--lambda_kl', type=float, default=0)
     parser.add_argument('--prior_model', type=str, default='disc',
                         choices=['disc', 'lep', 'tep', '0', 'hep'])
-    parser.add_argument('--lep_path', type=str, default='')
 
     # Optimization arguments
     parser.add_argument('--batchSize', type=int,

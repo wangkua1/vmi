@@ -12,7 +12,6 @@ import pickle
 import math
 
 import utils
-import hmc
 import numpy as np
 
 from torch.distributions.normal import Normal

@@ -16,7 +16,6 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from skimage.transform import rescale
 from celeba import get_celeba_dataset
-from celeba_old import get_celeba_dataset as get_celeba_dataset_old
 # import chestxray
 
 random.seed(2019)
@@ -639,7 +638,7 @@ def create_data(name, data_path, device, imgsize, Ntrain, Ntest, n_mixtures, rad
             transforms.ToTensor(),
             transforms.Normalize((0.5,), (0.5,))])
         dset = torchvision.datasets.EMNIST(
-            '/h/yanf/boosted-implicit-models/data/emnist', split='letters', download=False, transform=transform)
+            'data/emnist', split='letters', download=False, transform=transform)
         loader = DataLoader(dset, batch_size=1, shuffle=True,  num_workers=0)
         X = []
         Y = []

@@ -26,7 +26,7 @@ def save_image_grid(img, fname, drange, grid_size, ids_to_prepend=None):
         # Load number images
         nrow = gh
         assert len(ids_to_prepend) == nrow
-        num_ims = np.concatenate([plt.imread(f'/h/wangkuan/projects/boosted-implicit-models/results/number_imgs/{num}.png') for num in ids_to_prepend], 0)
+        num_ims = np.concatenate([plt.imread(f'results/number_imgs/{num}.png') for num in ids_to_prepend], 0)
         num_ims = np.rint(num_ims * 255).clip(0, 255).astype(np.uint8)
         img = np.concatenate([num_ims, img], 1)
 

@@ -64,11 +64,9 @@ def get_celeba_dataset(subset, crop=False):
     assert subset in ['target', 'aux', 'all']
     print("===> Loading Images")
     if crop:
-        cache_path = os.path.join(
-            os.environ['ROOT1'], 'projects/boosted-implicit-models', 'celeba1k-Feb25-64x64-crop.npz')
+        cache_path = os.path.join('celeba1k-Feb25-64x64-crop.npz')
     else:
-        cache_path = os.path.join(
-            os.environ['ROOT1'], 'projects/boosted-implicit-models', 'celeba1k-Feb25-64x64.npz')
+        cache_path = os.path.join('celeba1k-Feb25-64x64.npz')
     if os.path.exists(cache_path):
         print("===> Loading cache")
         X = np.load(open(cache_path, 'rb'))

@@ -12,4 +12,4 @@ prior_gan:
   name: dcgan
 target_cls:
   name: ResNet34
-  path: pretrained/classifiers/neurips2021-celeba/best_ckpt.pt
+  path: pretrained/classifiers/neurips2021-celeba-cls/best_ckpt.pt

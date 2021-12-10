@@ -6,8 +6,7 @@ import yaml
 
 # Local
 import data
-from model_utils import instantiate_generator, instantiate_discriminator, load_cls_embed, load_cls_z_to_lsm
-from main_aux import TargetDatasetReconstructionEvaluation
+from model_utils import instantiate_generator, instantiate_discriminator, load_cls_embed, load_cls_z_to_lsm, TargetDatasetReconstructionEvaluation
 from eval_pretrained_face_classifier import PretrainedInsightFaceClassifier, FinetunednsightFaceClassifier
 from classify_mnist import get_model, CelebAPretrained
 
@@ -54,18 +53,18 @@ class AttackExperiment:
             experiment_type = self.config['exp_type']
         else:
             experiment_type = 'mi-attack'
-        # Prepend ROOT1 to paths
-        if 'prior_gan' in self.config and not self.config['prior_gan']['g_path'].startswith('/'):
-            self.config['prior_gan']['g_path'] = os.path.join(
-                os.environ['ROOT1'], self.config['prior_gan']['g_path'])
-            self.config['prior_gan']['d_path'] = os.path.join(
-                os.environ['ROOT1'], self.config['prior_gan']['d_path'])
-        if 'target_cls' in self.config and not self.config['target_cls']['path'].startswith('/'):
-            self.config['target_cls']['path'] = os.path.join(
-                os.environ['ROOT1'], self.config['target_cls']['path'])
-        if 'evaluation_cls' in self.config and not self.config['evaluation_cls']['path'].startswith('/'):
-            self.config['evaluation_cls']['path'] = os.path.join(
-                os.environ['ROOT1'], self.config['evaluation_cls']['path'])
+        # # Prepend ROOT1 to paths
+        # if 'prior_gan' in self.config and not self.config['prior_gan']['g_path'].startswith('/'):
+        #     self.config['prior_gan']['g_path'] = os.path.join(
+        #         os.environ['ROOT1'], self.config['prior_gan']['g_path'])
+        #     self.config['prior_gan']['d_path'] = os.path.join(
+        #         os.environ['ROOT1'], self.config['prior_gan']['d_path'])
+        # if 'target_cls' in self.config and not self.config['target_cls']['path'].startswith('/'):
+        #     self.config['target_cls']['path'] = os.path.join(
+        #         os.environ['ROOT1'], self.config['target_cls']['path'])
+        # if 'evaluation_cls' in self.config and not self.config['evaluation_cls']['path'].startswith('/'):
+        #     self.config['evaluation_cls']['path'] = os.path.join(
+        #         os.environ['ROOT1'], self.config['evaluation_cls']['path'])
 
         # Load data
         if 'image_size' not in self.config['data']:
@@ -180,16 +179,16 @@ class AttackExperiment:
             generator.eval()
             # assert not generator.is_conditional
 
-            discriminator = instantiate_discriminator(model_args, None, device)
-            loaded = torch.load(self.config['prior_gan']['d_path'])
-            if 'index2class' in loaded:
-                loaded.pop('index2class')
-            discriminator.load_state_dict(loaded)
-            discriminator.eval()
-            assert discriminator.use_sigmoid
-            self.gan_args = model_args
-            self.generator = generator
-            self.discriminator = discriminator
+            # discriminator = instantiate_discriminator(model_args, None, device)
+            # loaded = torch.load(self.config['prior_gan']['d_path'])
+            # if 'index2class' in loaded:
+            #     loaded.pop('index2class')
+            # discriminator.load_state_dict(loaded)
+            # discriminator.eval()
+            # assert discriminator.use_sigmoid
+            # self.gan_args = model_args
+            # self.generator = generator
+            # self.discriminator = discriminator
 
 
 if __name__ == '__main__':

@@ -18,12 +18,11 @@ from torch.utils.data import Dataset, DataLoader
 from collections import defaultdict
 import pandas
 
-from utils import get_item
+from utils import get_item, euclidean_dist
 import utils
 import data
 import nets
 import train
-import hmc
 
 from csv_logger import CSVLogger, plot_csv
 import json
@@ -31,12 +30,11 @@ import ipdb
 import sys
 from utils import mkdir, gaussian_logp
 from tqdm import tqdm
- 
+
 import yaml
 import matplotlib.pylab as plt
 import itertools
 from model_utils import instantiate_generator, instantiate_discriminator, load_cls_embed, load_cls_z_to_lsm
-import toy_utils
 
 # Eval
 from fid import calculate_frechet_distance
@@ -115,73 +113,6 @@ def generate_N(inds, N, args, generator):
     fakes = torch.cat(fakes)[:N]
     ys = torch.cat(ys)[:N]
     return fakes, ys
-
-
-def compute_gmm_loglikelihood(samples, means, stds):
-    logp_xc = []
-    for m, s in tqdm(zip(means, stds), desc='gmm'):
-        logp_xc.append(gaussian_logp(m, s.log(), samples).sum(-1))
-    logp_xc = torch.stack(logp_xc)
-    logp_x = torch.logsumexp(logp_xc, dim=0) - np.log(logp_xc.size(0))
-    return logp_x
-
-
-def estimate_params(x, y):
-    means = []
-    stds = []
-    for c in range(10):
-        idx = c == y
-        chunk = x[idx]
-        if len(chunk) <= 1:  # undefined std
-            continue
-        means.append(chunk.mean(0, keepdim=True).detach())
-        stds.append(chunk.std(0, keepdim=True).detach())
-    return means, stds
-
-
-def compute_divergences(x1, y1, x2, y2, compute_all=False):
-    means1, stds1 = estimate_params(x1, y1)
-    means2, stds2 = estimate_params(x2, y2)
-
-    def compute_kl(params_p, params_q, samples_p):
-        logp = compute_gmm_loglikelihood(samples_p, params_p[0], params_p[1])
-        logq = compute_gmm_loglikelihood(samples_p, params_q[0], params_q[1])
-        return (logp - logq).mean()
-
-    def compute_jsd(params_p, params_q, samples_p, samples_q):
-        # KL(P || .5(P+Q))
-        logp = compute_gmm_loglikelihood(samples_p, params_p[0], params_p[1])
-        logq = compute_gmm_loglikelihood(samples_p, params_q[0], params_q[1])
-        kl_pm = (
-            logp - (torch.logsumexp(torch.stack([logp, logq]), 0) - np.log(2))).mean()
-        # KL(Q || .5(P+Q))
-        logp = compute_gmm_loglikelihood(samples_q, params_p[0], params_p[1])
-        logq = compute_gmm_loglikelihood(samples_q, params_q[0], params_q[1])
-        kl_qm = (
-            logq - (torch.logsumexp(torch.stack([logp, logq]), 0) - np.log(2))).mean()
-        return 0.5*(kl_pm + kl_qm)
-
-    kl_12 = kl_21 = jsd = frechet = -1
-
-    # Frechet Distance
-    npx1 = x1.detach().cpu().numpy()
-    npx2 = x2.detach().cpu().numpy()
-    mu1 = np.mean(npx1, axis=0)
-    sigma1 = np.cov(npx1, rowvar=False)
-    mu2 = np.mean(npx2, axis=0)
-    sigma2 = np.cov(npx2, rowvar=False)
-    frechet = calculate_frechet_distance(mu1, sigma1, mu2, sigma2)
-
-    if compute_all:
-        kl_12 = compute_kl((means1, stds1), (means2, stds2), x1)
-        kl_21 = compute_kl((means2, stds2), (means1, stds1), x2)
-        jsd = compute_jsd((means1, stds1), (means2, stds2), x1, x2)
-    return {
-        'kl_12': kl_12,
-        'kl_21': kl_21,
-        'jsd': jsd,
-        'frechet': frechet
-    }
 
 
 def main(args):
@@ -381,10 +312,10 @@ def main(args):
 
             if args.model == 'dcgan_aux':
                 train.dcgan_aux(dat['X_train'], generator, discriminator, optimizerG, optimizerD,
-                            args, epoch, iteration_logger, dat['Y_train'], target_extract, real_c)
+                                args, epoch, iteration_logger, dat['Y_train'], target_extract, real_c)
             elif args.model == 'l2_aux':
                 train.l2_aux(dat['X_train'], generator, discriminator, optimizerG, optimizerD,
-                            args, epoch, iteration_logger, dat['Y_train'], target_extract, real_c)
+                             args, epoch, iteration_logger, dat['Y_train'], target_extract, real_c)
         elif args.model == 'mm':
             train.mm(dat['X_train'], generator, discriminator,
                      optimizerG, optimizerD, args, epoch, iteration_logger)
